@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicación Contable - Despacho</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>📊 Aplicación Contable - Despacho</h1>
+            <div class="file-menu">
+                <span id="openFileName" style="color: #666; font-size: 14px; margin-right: 10px;">(Sin archivo
+                    abierto)</span>
+                <button onclick="App.nativeSave()" class="btn-save">💾 Guardar</button>
+                <button onclick="App.nativeSaveAs()" class="btn-save" style="background:#2c5282">💾 Guardar
+                    Como...</button>
+                <button onclick="App.nativeOpen()" class="btn-load">📂 Abrir</button>
+                <button onclick="App.newFile()" class="btn-new">📄 Nuevo</button>
+            </div>
+        </header>
+
+        <!-- Navigation & Month Selector -->
+        <div class="nav-controls">
+            <div class="nav-group">
+                <strong>Año:</strong>
+                <input type="number" id="yearSelector" class="year-input" value="2026"
+                    onchange="App.changeYear(this.value)">
+            </div>
+            <div class="nav-group">
+                <strong>Mes actual:</strong>
+                <select id="currentMonth" onchange="App.loadMonth(this.value)">
+                    <!-- Populated by JS -->
+                </select>
+            </div>
+            <div>
+                <button onclick="App.nextMonth()">➡️ Mes Siguiente</button>
+            </div>
+        </div>
+
+        <!-- Saldo Inicial Section (Visible mainly in Jan or first month) -->
+        <div class="saldo-inicial" id="saldoInicialSection">
+            <h3>💰 Saldo Inicial (Inicio de Año)</h3>
+            <div class="form-group">
+                <div>
+                    <label>Dinero Inicial (€)</label>
+                    <input type="number" id="saldoInicial" step="0.01" placeholder="0.00" value="0.00">
+                </div>
+                <div>
+                    <label>Forma</label>
+                    <select id="saldoForma">
+                        <option value="Cuenta">Cuenta</option>
+                        <option value="Efectivo">Efectivo</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="App.setSaldoInicial()">✅ Establecer Saldo Inicial</button>
+        </div>
+
+        <!-- Add Movement Form -->
+        <div class="section">
+            <h2>➕ Añadir Movimiento</h2>
+            <div class="form-group">
+                <div>
+                    <label>Fecha</label>
+                    <input type="date" id="inputFecha">
+                </div>
+                <div>
+                    <label>Concepto</label>
+                    <input type="text" id="inputConcepto" placeholder="Descripción">
+                </div>
+                <div>
+                    <label>Cliente / Proveedor</label>
+                    <input type="text" id="inputCliente" placeholder="Nombre">
+                </div>
+                <div>
+                    <label>Tipo</label>
+                    <select id="inputTipo" onchange="App.updateInputCategory()">
+                        <option value="Ingreso">Ingreso</option>
+                        <option value="Gasto">Gasto</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Categoría</label>
+                    <select id="inputCategoria">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label>Importe (€)</label>
+                    <input type="number" id="inputImporte" step="0.01" placeholder="0.00">
+                </div>
+                <div>
+                    <label>Forma de Pago</label>
+                    <select id="inputPago">
+                        <option value="Cuenta">Cuenta</option>
+                        <option value="Efectivo">Efectivo</option>
+                    </select>
+                </div>
+                <div>
+                    <label>IVA Soportado (€)</label>
+                    <input type="number" id="inputIVA" step="0.01" placeholder="Solo Gasto Despacho" disabled>
+                </div>
+                <div>
+                    <label>¿Retención IRPF?</label>
+                    <select id="inputRetencion" onchange="App.toggleRetencionAmount()" disabled>
+                        <option value="no">No</option>
+                        <option value="si">Sí</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Monto Retención (€)</label>
+                    <input type="number" id="inputRetencionMonto" step="0.01" placeholder="0.00" disabled>
+                </div>
+            </div>
+            <button onclick="App.addMovement()">✅ Añadir Movimiento</button>
+        </div>
+
+        <!-- Debt Management -->
+        <div class="section">
+            <h2>💼 Gestión de Deudas</h2>
+            <div class="form-group">
+                <div>
+                    <label>Concepto de Deuda</label>
+                    <input type="text" id="deudaConcepto" placeholder="Ej: Préstamo banco">
+                </div>
+                <div>
+                    <label>Importe (€)</label>
+                    <input type="number" id="deudaImporte" step="0.01" placeholder="0.00">
+                </div>
+                <div>
+                    <label>Tipo</label>
+                    <select id="deudaTipo">
+                        <option value="nueva">Nueva Deuda</option>
+                        <option value="pago">Pago de Deuda</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="App.addDebt()">✅ Registrar Deuda/Pago</button>
+
+            <table id="deudasTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Tipo</th>
+                        <th>Importe</th>
+                        <th>Saldo Acumulado</th>
+                    </tr>
+                </thead>
+                <tbody id="deudasBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="section">
+            <h2>🖥️ Panel de Control - <span id="dashboardMonthTitle">Mes Actual</span></h2>
+            <div class="dashboard-box">
+                <div class="dashboard-row">
+                    <div class="dashboard-card">
+                        <div class="dashboard-label">Resultado Personal</div>
+                        <div class="dashboard-value" id="resPersonal">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-label">Impuestos (IVA+IRPF)</div>
+                        <div class="dashboard-value" id="impuestos">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-label">Dinero Disponible</div>
+                        <div class="dashboard-value" id="dispTotal">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-orange">
+                        <div class="dashboard-label">IVA Neto a Pagar</div>
+                        <div class="dashboard-value orange" id="ivaNeto">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-orange">
+                        <div class="dashboard-label">IRPF Neto a Pagar</div>
+                        <div class="dashboard-value orange" id="irpfNeto">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-label">Deuda Actual</div>
+                        <div class="dashboard-value negative" id="deudaActual">0.00 €</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Records -->
+        <div class="section">
+            <h2>📝 Movimientos - <span id="mesTitulo"></span></h2>
+            <table id="mesTable">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th>Cliente/Prov.</th>
+                        <th>Tipo</th>
+                        <th>Categoría</th>
+                        <th>Importe</th>
+                        <th>Pago</th>
+                        <th>IVA Sop.</th>
+                        <th>Retención</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="mesBody"></tbody>
+            </table>
+        </div>
+
+        <!-- Monthly Summary -->
+        <div class="section">
+            <h2>📈 Resumen Mensual</h2>
+            <div class="table-responsive">
+                <table id="resumenMensual">
+                    <thead>
+                        <tr>
+                            <th>Mes</th>
+                            <th class="light-green">Ing. D</th>
+                            <th class="light-green">Ing. No D</th>
+                            <th class="light-red">Gas. Desp</th>
+                            <th class="light-red">Gas. Pers</th>
+                            <th>Tot. Ing</th>
+                            <th>Tot. Gas</th>
+                            <th>Res. Pers</th>
+                            <th class="light-orange">IVA Neto</th>
+                            <th class="light-orange">IRPF Neto</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quarterly Summary -->
+        <div class="section">
+            <h2>📆 Resumen Trimestral</h2>
+            <table id="resumenTrimestral">
+                <thead>
+                    <tr>
+                        <th>Trimestre</th>
+                        <th>Ingresos D</th>
+                        <th>Gastos Despacho</th>
+                        <th>Res. Negocio</th>
+                        <th>IVA Neto</th>
+                        <th>IRPF Neto</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Annual Summary -->
+        <div class="section">
+            <h2>📅 Resumen Anual (<span id="annualYearLabel"></span>)</h2>
+            <div class="annual-grid">
+                <div class="annual-card">
+                    <h3>💼 Solo Negocio</h3>
+                    <table>
+                        <tr>
+                            <th>Ingresos D</th>
+                            <td id="anualIngresosD">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Gastos D</th>
+                            <td id="anualGastosD">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Res. Negocio</th>
+                            <td id="anualResNegocio">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th class="light-orange">IVA Neto</th>
+                            <td id="anualIVANeto">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th class="light-orange">IRPF Neto</th>
+                            <td id="anualIRPFNeto">0.00 €</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="annual-card">
+                    <h3>🌍 Total General</h3>
+                    <table>
+                        <tr>
+                            <th>Total Ingresos</th>
+                            <td id="anualIngresosTot">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Total Gastos</th>
+                            <td id="anualGastosTot">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Res. Personal</th>
+                            <td id="anualResPersonal">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>En Cuentas</th>
+                            <td id="anualCuentas">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>En Efectivo</th>
+                            <td id="anualEfectivo">0.00 €</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
