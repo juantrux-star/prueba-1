@@ -1,0 +1,92 @@
+{
+  "app_version": "1.0",
+  "deudas": [
+    {
+      "id": "1767562679390",
+      "acreedor": "Mama",
+      "descripcion": "Préstamo Negocio",
+      "importe_total": 2000,
+      "importe_pagado": 0,
+      "pago_mensual_recurrente": 0,
+      "dia_cobro": 5,
+      "fecha_inicio": "2026-01-04",
+      "fecha_registro": "2026-01-04T21:37:59.390Z"
+    },
+    {
+      "id": "1767562811230",
+      "acreedor": "BBVA",
+      "descripcion": "Tarjeta de Crédito",
+      "importe_total": 1748.32,
+      "importe_pagado": 0,
+      "pago_mensual_recurrente": 150,
+      "dia_cobro": 5,
+      "fecha_inicio": "2026-01-05",
+      "fecha_registro": "2026-01-04T21:40:11.230Z"
+    }
+  ],
+  "last_modified": "2026-01-04T22:47:23.657081",
+  "movimientos": [
+    {
+      "fecha": "2026-01-03",
+      "concepto": "Vida social",
+      "cliente": "Yo",
+      "tipo": "Gasto",
+      "categoria": "Gastos Personales",
+      "importe": 10,
+      "pago": "Efectivo",
+      "iva_soportado": 0,
+      "retencion": 0,
+      "base_imponible": 10,
+      "con_iva": false,
+      "recurrente": false,
+      "fecha_registro": "2026-01-04T21:43:04.934Z"
+    },
+    {
+      "fecha": "2026-01-02",
+      "concepto": "Agua",
+      "cliente": "Agus de Jumilla",
+      "tipo": "Gasto",
+      "categoria": "Gastos Despacho",
+      "importe": 47.42,
+      "pago": "Cuenta",
+      "iva_soportado": 9.96,
+      "retencion": 0,
+      "base_imponible": 37.46,
+      "con_iva": false,
+      "recurrente": false,
+      "fecha_registro": "2026-01-04T21:46:20.046Z"
+    },
+    {
+      "fecha": "2026-01-31",
+      "concepto": "Legalitas",
+      "cliente": "Legalitas",
+      "tipo": "Ingreso",
+      "categoria": "Honorarios Despacho",
+      "importe": 1080,
+      "pago": "Cuenta",
+      "iva_soportado": 0,
+      "retencion": 80,
+      "base_imponible": 892.5619834710744,
+      "con_iva": true,
+      "recurrente": false,
+      "fecha_registro": "2026-01-04T21:47:23.654Z"
+    }
+  ],
+  "saldos_iniciales": [
+    {
+      "year": 2026,
+      "descripcion": "Efectivo",
+      "importe": 750,
+      "forma": "Efectivo",
+      "fecha_registro": "2026-01-04T21:40:41.590Z"
+    },
+    {
+      "year": 2026,
+      "descripcion": "BBVA",
+      "importe": 581.49,
+      "forma": "Cuenta",
+      "fecha_registro": "2026-01-04T21:43:44.894Z"
+    }
+  ],
+  "schema_version": "2.0"
+}

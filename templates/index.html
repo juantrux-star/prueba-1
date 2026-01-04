@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicación Contable - Despacho</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>📊 Aplicación Contable - Despacho</h1>
+            <div class="file-menu">
+                <span id="openFileName" style="color: #666; font-size: 14px; margin-right: 10px;">(Sin archivo
+                    abierto)</span>
+                <button onclick="App.nativeSave()" class="btn-save">💾 Guardar</button>
+                <button onclick="App.nativeSaveAs()" class="btn-save" style="background:#2c5282">💾 Guardar
+                    Como...</button>
+                <button onclick="App.nativeOpen()" class="btn-load">📂 Abrir</button>
+                <button onclick="App.newFile()" class="btn-new">📄 Nuevo</button>
+                <button onclick="App.shutdown()" class="btn-delete" style="background:#c53030;">❌ Cerrar
+                    Aplicación</button>
+            </div>
+        </header>
+
+        <!-- Navigation & Month Selector -->
+        <div class="nav-controls">
+            <div class="nav-group">
+                <strong>Año:</strong>
+                <input type="number" id="yearSelector" class="year-input" value="2026"
+                    onchange="App.changeYear(this.value)" min="2020" max="2100">
+            </div>
+            <div class="nav-group">
+                <strong>Mes actual:</strong>
+                <select id="currentMonth" onchange="App.loadMonth(this.value)">
+                </select>
+            </div>
+            <div>
+                <button onclick="App.nextMonth()">➡️ Mes Siguiente</button>
+            </div>
+        </div>
+
+        <!-- Saldo Inicial Section -->
+        <div class="saldo-inicial" id="saldoInicialSection">
+            <h3>💰 Saldos Iniciales (Año: <span id="currentYearDisplay">2026</span>)</h3>
+            <p style="font-size:14px; color:#666; margin-bottom:15px;">
+                Puede registrar múltiples saldos iniciales (ej: diferentes cuentas bancarias y efectivo).
+                El programa sumará automáticamente todos los importes.
+            </p>
+
+            <table style="width:100%; margin-bottom:20px; background:white;">
+                <thead>
+                    <tr>
+                        <th>Descripción</th>
+                        <th>Importe</th>
+                        <th>Forma</th>
+                        <th>Año</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="initialBalancesBody">
+                    <tr>
+                        <td colspan="5" style="text-align:center; color:#666;">No hay saldos iniciales registrados para
+                            este año</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="form-group">
+                <div>
+                    <label>Descripción *</label>
+                    <input type="text" id="initDesc" placeholder="Ej: Cuenta Bancaria ABC123">
+                </div>
+                <div>
+                    <label>Importe (€) *</label>
+                    <input type="number" id="initImporte" step="0.01" placeholder="0.00" min="0">
+                </div>
+                <div>
+                    <label>Forma *</label>
+                    <select id="initForma">
+                        <option value="Cuenta">Cuenta Bancaria</option>
+                        <option value="Efectivo">Efectivo / Caja</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="App.addInitialBalance()" style="background:#2f855a;">➕ Añadir Saldo Inicial</button>
+        </div>
+
+        <!-- Add Movement Form -->
+        <div class="section">
+            <h2>➕ Añadir Movimiento</h2>
+            <div class="form-group">
+                <div>
+                    <label>Fecha *</label>
+                    <input type="date" id="inputFecha">
+                </div>
+                <div>
+                    <label>Concepto *</label>
+                    <input type="text" id="inputConcepto" placeholder="Descripción" required>
+                </div>
+                <div>
+                    <label>Cliente / Proveedor</label>
+                    <input type="text" id="inputCliente" placeholder="Nombre">
+                </div>
+                <div>
+                    <label>Tipo *</label>
+                    <select id="inputTipo" onchange="App.updateInputCategory()">
+                        <option value="Ingreso">Ingreso</option>
+                        <option value="Gasto">Gasto</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Categoría *</label>
+                    <select id="inputCategoria" onchange="App.updateFormVisibility()"></select>
+                </div>
+                <div>
+                    <label>Importe (€) *</label>
+                    <input type="number" id="inputImporte" step="0.01" placeholder="0.00" required min="0">
+                </div>
+                <div>
+                    <label>Forma de Pago *</label>
+                    <select id="inputPago">
+                        <option value="Cuenta">Cuenta</option>
+                        <option value="Efectivo">Efectivo</option>
+                    </select>
+                </div>
+
+                <!-- Campos para INGRESOS con IVA -->
+                <div id="ivaIngresoField" style="display:none;">
+                    <label>¿Factura con IVA (21%)?</label>
+                    <select id="inputConIVA" onchange="App.updateFormVisibility()">
+                        <option value="no">No</option>
+                        <option value="si">Sí (IVA 21%)</option>
+                    </select>
+                </div>
+
+                <div id="retencionField" style="display:none;">
+                    <label>¿Retención IRPF? (pagador retiene)</label>
+                    <select id="inputRetencion" onchange="App.updateFormVisibility()">
+                        <option value="no">No (debo 19%)</option>
+                        <option value="si">Sí (me retienen)</option>
+                    </select>
+                </div>
+
+                <div id="retencionMontoField" style="display:none;">
+                    <label>Monto Retención (€)</label>
+                    <input type="number" id="inputRetencionMonto" step="0.01" placeholder="0.00" min="0">
+                </div>
+
+                <!-- Campos para GASTOS de despacho -->
+                <div id="ivaGastoField" style="display:none;">
+                    <label>IVA Soportado (€)</label>
+                    <input type="number" id="inputIVA" step="0.01" placeholder="IVA del gasto">
+                </div>
+
+                <div id="baseImponibleGastoField" style="display:none;">
+                    <label>Base Imponible (€) para IRPF</label>
+                    <input type="number" id="inputBaseImponibleGasto" step="0.01" placeholder="Base sin IVA">
+                </div>
+
+                <div
+                    style="grid-column: 1 / -1; display:flex; align-items:center; margin-top:10px; padding:10px; background-color:#ebf8ff; border-radius:4px; border:1px solid #bee3f8;">
+                    <input type="checkbox" id="inputRecurrente" style="width:auto; margin-right:10px;">
+                    <label for="inputRecurrente" style="cursor:pointer; font-weight:bold; color:#2c5282; flex:1;">
+                        📅 Recurrente (Todo el año)
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="App.addMovement()" style="background:#2f855a; padding:12px 24px; font-size:16px;">✅ Añadir
+                Movimiento</button>
+
+            <div
+                style="margin-top:20px; padding:15px; background:#f0f7ff; border-radius:6px; border-left:4px solid #3182ce;">
+                <h4 style="margin-top:0; color:#2c5282;">📝 Guía rápida:</h4>
+                <ul style="margin:10px 0; padding-left:20px; color:#4a5568;">
+                    <li><strong>Ingresos Negocio:</strong> Con IVA 21%. Si no hay retención, se calcula IRPF 19%
+                        automáticamente.</li>
+                    <li><strong>Ingresos Personales:</strong> Sin impuestos, va directamente a disponible.</li>
+                    <li><strong>Gastos Despacho:</strong> Indique IVA soportado y base imponible para deducir IRPF.</li>
+                    <li><strong>Gastos Personales:</strong> Sin IVA, resta directamente del disponible.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="section">
+            <h2>🖥️ Panel de Control - <span id="dashboardMonthTitle">Mes Actual</span></h2>
+            <div class="dashboard-box">
+                <div class="dashboard-row">
+                    <div class="dashboard-card">
+                        <div class="dashboard-label">Resultado Personal</div>
+                        <div class="dashboard-value" id="resPersonal">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card">
+                        <div class="dashboard-label">Impuestos (IVA+IRPF)</div>
+                        <div class="dashboard-value" id="impuestos">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-blue">
+                        <div class="dashboard-label">En Cuentas</div>
+                        <div class="dashboard-value" id="dispCuentas">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-blue">
+                        <div class="dashboard-label">En Efectivo</div>
+                        <div class="dashboard-value" id="dispEfectivo">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-orange">
+                        <div class="dashboard-label">IVA Neto a Pagar</div>
+                        <div class="dashboard-value orange" id="ivaNeto">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-orange">
+                        <div class="dashboard-label">IRPF Neto a Pagar</div>
+                        <div class="dashboard-value orange" id="irpfNeto">0.00 €</div>
+                    </div>
+                    <div class="dashboard-card light-green">
+                        <div class="dashboard-label">Dinero Disponible Real</div>
+                        <div class="dashboard-value positive" id="dineroDisponibleReal">0.00 €</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Records -->
+        <div class="section">
+            <h2>📝 Movimientos - <span id="mesTitulo"></span></h2>
+            <div class="table-responsive">
+                <table id="mesTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Concepto</th>
+                            <th>Cliente/Prov.</th>
+                            <th>Tipo</th>
+                            <th>Categoría</th>
+                            <th>Importe</th>
+                            <th>Pago</th>
+                            <th>IVA Sop.</th>
+                            <th>Retención</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mesBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Quarterly Summary -->
+        <div class="section">
+            <h2>📆 Resumen Trimestral <span id="currentYearDisplay2">2026</span></h2>
+            <div class="table-responsive">
+                <table id="resumenTrimestral">
+                    <thead>
+                        <tr>
+                            <th>Trimestre</th>
+                            <th>Ingresos Negocio</th>
+                            <th>Gastos Despacho</th>
+                            <th>Res. Negocio</th>
+                            <th>IVA Neto</th>
+                            <th>IRPF Neto</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <p style="font-size:12px; color:#666; margin-top:10px;">
+                <strong>Nota:</strong> T1 (Ene-Mar), T2 (Abr-Jun), T3 (Jul-Sep), T4 (Oct-Dic)
+            </p>
+        </div>
+
+        <!-- Annual Summary -->
+        <div class="section">
+            <h2>📅 Resumen Anual (<span id="annualYearLabel"></span>)</h2>
+            <div class="annual-grid">
+                <div class="annual-card">
+                    <h3
+                        style="background:#2c5282; color:white; padding:12px; border-radius:6px; margin-top:0; font-size:18px;">
+                        💼 Solo Negocio</h3>
+                    <table>
+                        <tr>
+                            <th>Ingresos Negocio</th>
+                            <td id="anualIngresosD">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Gastos Despacho</th>
+                            <td id="anualGastosD">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Resultado Negocio</th>
+                            <td id="anualResNegocio">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th style="background:#2c5282; color:white; padding:10px; border-radius:4px;">IVA Neto</th>
+                            <td style="background:white; color:#333; font-weight:bold;" id="anualIVANeto">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th style="background:#2c5282; color:white; padding:10px; border-radius:4px;">IRPF Neto</th>
+                            <td style="background:white; color:#333; font-weight:bold;" id="anualIRPFNeto">0.00 €</td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="annual-card">
+                    <h3
+                        style="background:#2c5282; color:white; padding:12px; border-radius:6px; margin-top:0; font-size:18px;">
+                        🌍 Total General</h3>
+                    <table>
+                        <tr>
+                            <th>Total Ingresos</th>
+                            <td id="anualIngresosTot">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Total Gastos</th>
+                            <td id="anualGastosTot">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>Resultado Personal</th>
+                            <td id="anualResPersonal">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>En Cuentas</th>
+                            <td id="anualCuentas">0.00 €</td>
+                        </tr>
+                        <tr>
+                            <th>En Efectivo</th>
+                            <td id="anualEfectivo">0.00 €</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debt Management Section -->
+        <div class="section">
+            <h2>💳 Gestión de Deudas</h2>
+            <p style="font-size:14px; color:#666; margin-bottom:15px;">
+                Registre deudas pendientes y realice pagos. Las deudas no afectan el dinero disponible hasta que se
+                pagan.
+                Puede configurar pagos mensuales recurrentes que se descontarán automáticamente cada mes.
+            </p>
+
+            <!-- Debts Table -->
+            <div class="table-responsive" style="margin-bottom:25px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Acreedor</th>
+                            <th>Descripción</th>
+                            <th>Importe Total</th>
+                            <th>Pagado</th>
+                            <th>Pendiente</th>
+                            <th>Pago Mensual</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="debtsBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; color:#666;">No hay deudas registradas</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add Debt Form -->
+            <div style="background:#f7fafc; padding:20px; border-radius:8px; margin-bottom:20px;">
+                <h3 style="margin-top:0; color:#2c5282;">➕ Añadir Nueva Deuda</h3>
+                <div class="form-group">
+                    <div>
+                        <label>Acreedor *</label>
+                        <input type="text" id="debtAcreedor" placeholder="Ej: Banco, Madre, etc.">
+                    </div>
+                    <div>
+                        <label>Descripción *</label>
+                        <input type="text" id="debtDescripcion" placeholder="Ej: Préstamo personal">
+                    </div>
+                    <div>
+                        <label>Importe Total (€) *</label>
+                        <input type="number" id="debtImporte" step="0.01" placeholder="0.00" min="0">
+                    </div>
+                    <div>
+                        <label>Pago Mensual Recurrente (€)</label>
+                        <input type="number" id="debtPagoMensual" step="0.01" placeholder="0.00 (opcional)" min="0">
+                    </div>
+                    <div>
+                        <label>Día de Cobro (1-28)</label>
+                        <input type="number" id="debtDiaCobro" min="1" max="28" placeholder="5">
+                    </div>
+                    <div>
+                        <label>Fecha Inicio Pagos</label>
+                        <input type="date" id="debtFechaInicio">
+                    </div>
+                </div>
+                <button onclick="App.addDebt()" style="background:#2f855a; padding:10px 20px;">✅ Añadir Deuda</button>
+            </div>
+
+            <!-- Dashboard Card for Total Debts -->
+            <div class="dashboard-box" style="margin-top:20px;">
+                <div class="dashboard-row">
+                    <div class="dashboard-card light-orange">
+                        <div class="dashboard-label">Total Deudas Pendientes</div>
+                        <div class="dashboard-value orange" id="totalDeudas">0.00 €</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pay Taxes Button -->
+        <div class="section">
+            <button onclick="App.payTaxes()"
+                style="background:#9c27b0; color:white; padding:12px 24px; font-weight:bold; border:none; border-radius:6px; font-size:16px;">
+                💸 Pagar Impuestos Trimestrales
+            </button>
+            <p style="font-size:14px; color:#666; margin-top:15px;">
+                <strong>Nota:</strong> Registra un gasto por el total de impuestos pendientes (IVA + IRPF) del trimestre
+                actual.
+            </p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
